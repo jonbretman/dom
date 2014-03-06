@@ -12,10 +12,17 @@
         mocha.setup('bdd');
     </script>
 
+    <style>
+        #test-css-computed-style {
+            font-size: 50px;
+            float: left;
+        }
+    </style>
+
 </head>
 <body>
     <div id="mocha"></div>
-    <script src="../src/dom.js"></script>
+    <script src="src/dom.js"></script>
     <script src="spec/dom.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {

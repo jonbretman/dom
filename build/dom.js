@@ -66,6 +66,15 @@
 
     /**
      *
+     * @param obj
+     * @returns {boolean}
+     */
+    var isObject = function (obj) {
+        return toString.call(obj) === '[object Object]';
+    };
+
+    /**
+     *
      * @param html
      * @returns {*|Array}
      */
@@ -411,6 +420,10 @@
             });
         },
 
+        /**
+         *
+         * @returns {*}
+         */
         remove: function () {
             return this.each(function () {
                 if (this[parentNode]) {
@@ -419,6 +432,12 @@
             });
         },
 
+        /**
+         *
+         * @param key
+         * @param value
+         * @returns {*}
+         */
         attr: function (key, value) {
 
             if (arguments[length] === 1) {
@@ -432,6 +451,12 @@
             });
         },
 
+        /**
+         *
+         * @param key
+         * @param value
+         * @returns {*}
+         */
         prop: function (key, value) {
 
             if (arguments[length] === 1) {
@@ -443,12 +468,22 @@
             });
         },
 
+        /**
+         *
+         * @param key
+         * @returns {*}
+         */
         pluck: function (key) {
             return this.map(function (element) {
                 return element[key];
             }).toArray();
         },
 
+        /**
+         *
+         * @param value
+         * @returns {*}
+         */
         val: function (value) {
 
             if (arguments[length] === 0) {
@@ -469,6 +504,11 @@
             });
         },
 
+        /**
+         *
+         * @param selector
+         * @returns {Dom}
+         */
         children: function (selector) {
             var results = [];
 
@@ -481,6 +521,32 @@
             }
 
             return dom(results);
+        },
+
+        /**
+         *
+         * @param {Object|String} prop
+         * @param {String} [value]
+         * @returns {String|dom}
+         */
+        css: function (prop, value) {
+
+            if (arguments[length] === 1 && isString(prop)) {
+                var style = getComputedStyle(this[0]);
+                return style && style[prop] ? style[prop] : '';
+            }
+
+            if (isObject(prop)) {
+                return this.each(function () {
+                    for (var key in prop) {
+                        this.style[key] = prop[key];
+                    }
+                });
+            }
+
+            return this.each(function () {
+                this.style[prop] = value;
+            });
         }
 
     };

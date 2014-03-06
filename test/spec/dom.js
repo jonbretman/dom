@@ -581,4 +581,28 @@ describe('dom', function () {
 
     });
 
+    describe('#css(prop)', function () {
+
+        it('should return the value of the property for the first element in the collection', function () {
+
+            var el = document.createElement('div');
+            el.style.display = 'inline';
+            el.style.color = 'red';
+            el.style.position = 'absolute';
+
+            expect(dom(el).css('color')).to.equal('red');
+            expect(dom(el).css('display')).to.equal('inline');
+            expect(dom(el).css('position')).to.equal('absolute');
+
+            // test computed styles from css
+            el = document.createElement('div');
+            testRoot.appendChild(el);
+            el.id = 'test-css-computed-style';
+
+            expect(dom(el).css('font-size')).to.equal('50px');
+            expect(dom(el).css('float')).to.equal('left');
+        });
+
+    });
+
 });
