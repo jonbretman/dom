@@ -532,8 +532,10 @@
         css: function (prop, value) {
 
             if (arguments[length] === 1 && isString(prop)) {
-                var style = getComputedStyle(this[0]);
-                return style && style[prop] ? style[prop] : '';
+                var el = this[0];
+                var style = el && el.style;
+                var computed = getComputedStyle(el);
+                return el ? style[prop] || computed[prop] || '' : '';
             }
 
             if (isObject(prop)) {
