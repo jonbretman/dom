@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>dom test suite</title>
+    <link rel="stylesheet" href="../node_modules/mocha/mocha.css">
+
+    <script src="../node_modules/mocha/mocha.js"></script>
+    <script src="../node_modules/expect.js/index.js"></script>
+    <script src="../node_modules/sinon/pkg/sinon.js"></script>
+    <script>
+        mocha.setup('bdd');
+    </script>
+
+</head>
+<body>
+    <div id="mocha"></div>
+    <script src="../src/dom.js"></script>
+    <script src="spec/dom.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            mocha.run();
+        }, false);
+    </script>
+</body>
+</html>
