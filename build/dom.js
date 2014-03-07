@@ -549,6 +549,26 @@
             return this.each(function () {
                 this.style[prop] = value;
             });
+        },
+
+        /**
+         *
+         * @returns {Object|Null}
+         */
+        offset: function () {
+
+            if (this[length] === 0) {
+                return null;
+            }
+
+            var obj = this[0].getBoundingClientRect();
+
+            return {
+                left: obj.left + win.pageXOffset,
+                top: obj.top + win.pageYOffset,
+                width: Math.round(obj.width),
+                height: Math.round(obj.height)
+            };
         }
 
     };

@@ -605,4 +605,33 @@ describe('dom', function () {
 
     });
 
+    describe('#offset()', function () {
+
+        it('should return null if the collection is empty', function () {
+            expect(dom().offset()).to.equal(null);
+        });
+
+        it('should return an object containing top, left, width, and height properties for the first element', function () {
+            var offset = dom('<div></div>').offset();
+            expect(offset).to.have.property('top');
+            expect(offset).to.have.property('left');
+            expect(offset).to.have.property('width');
+            expect(offset).to.have.property('height');
+        });
+
+        it('should return correct values based on element styles', function () {
+
+            addTestHTML('<div id="test-offset"></div>');
+
+            var offset = dom('#test-offset').offset();
+
+            expect(offset).to.have.property('top', document.getElementById('test-offset').getBoundingClientRect().top + window.pageYOffset);
+            expect(offset).to.have.property('left', 0);
+            expect(offset).to.have.property('width', 100);
+            expect(offset).to.have.property('height', 220);
+
+        });
+
+    });
+
 });
