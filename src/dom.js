@@ -13,9 +13,12 @@
     var classList = 'classList';
     var className = 'className';
     var forEach = 'forEach';
+    var each = 'each';
+    var querySelectorAll = 'querySelectorAll';
     var idRegEx = /^#[\w\-_]+$/;
     var classRegEx = /^\.[\w\-_]+$/;
     var tagRegEx = /^[a-z]+$/;
+    var htmlRegEx = /^<.*?>$/;
     var addClass, removeClass, hasClass;
 
     /**
@@ -46,32 +49,32 @@
         return el && el.nodeType === 1;
     };
 
+    var generateTypeMethod = function (type) {
+        return function (obj) {
+            return toString.call(obj) === '[object ' + type + ']';
+        };
+    };
+
     /**
      *
      * @param s
      * @returns {boolean}
      */
-    var isString = function (s) {
-        return toString.call(s) === '[object String]';
-    };
+    var isString = generateTypeMethod('String');
 
     /**
      *
      * @param fn
      * @returns {boolean}
      */
-    var isFunction = function (fn) {
-        return toString.call(fn) === '[object Function]';
-    };
+    var isFunction = generateTypeMethod('Function');
 
     /**
      *
      * @param obj
      * @returns {boolean}
      */
-    var isObject = function (obj) {
-        return toString.call(obj) === '[object Object]';
-    };
+    var isObject = generateTypeMethod('Object');
 
     /**
      *
@@ -104,7 +107,7 @@
             el[classList].remove(c);
         };
         hasClass = function (el, c) {
-            el[classList].has(c);
+            return el[classList].contains(c);
         };
     }
     else {
@@ -144,12 +147,12 @@
             return this;
         }
 
-        if (isString(selector) && /^<.*?>$/.test(selector)) {
+        if (isString(selector) && htmlRegEx.test(selector)) {
             selector = fromHtml(selector);
         }
 
         if (arrayLike(selector)) {
-            push.apply(this, [].slice.call(selector));
+            push.apply(this, slice.call(selector));
             return this;
         }
 
@@ -174,12 +177,13 @@
                 return this;
             }
 
+            // optimize for id selector
             if (idRegEx.test(selector)) {
                 return dom(doc.getElementById(selector.substring(1)));
             }
 
             var results;
-            var method = 'querySelectorAll';
+            var method = querySelectorAll;
 
             if (classRegEx.test(selector)) {
                 method = 'getElementsByClassName';
@@ -192,7 +196,7 @@
             if (this[length] > 0) {
                 results = [];
                 for (var i = 0; i < this[length]; i++) {
-                    results.push.apply(results, [].slice.call(this[i][method](selector)));
+                    results.push.apply(results, slice.call(this[i][method](selector)));
                 }
             }
             else {
@@ -243,7 +247,7 @@
          */
         filter: function (fn) {
 
-            if (!isFunction(fn)) {
+            if (!isFunction(fn) && !isString(fn)) {
                 return this;
             }
 
@@ -279,7 +283,7 @@
         closest: function (selector) {
 
             if (this[length] === 0) {
-                return this;
+                return dom();
             }
 
             var target = this[0];
@@ -303,21 +307,32 @@
          */
         is: function (selector) {
 
-            for (var i = 0; i < this[length]; i++) {
+            for (var i = 0, el; i < this[length]; i++) {
+
+                el = this[i];
 
                 if (!selector) {
                     continue;
                 }
 
-                var matchesSelector = this[i].webkitMatchesSelector ||
-                    this[i].mozMatchesSelector ||
-                    this[i].msMatchesSelector ||
-                    this[i].oMatchesSelector ||
-                    this[i].matchesSelector ||
-                    this[i].matches;
+                if (isElement(selector)) {
+                    if (el === selector) {
+                        return true;
+                    }
+                    else {
+                        continue;
+                    }
+                }
+
+                var matchesSelector = el.webkitMatchesSelector ||
+                    el.mozMatchesSelector ||
+                    el.msMatchesSelector ||
+                    el.oMatchesSelector ||
+                    el.matchesSelector ||
+                    el.matches;
 
                 if (matchesSelector) {
-                    if (matchesSelector.call(this[i], selector)) {
+                    if (matchesSelector.call(el, selector)) {
                         return true;
                     }
                     else {
@@ -327,18 +342,18 @@
 
                 // fall back to performing a selector:
                 var match;
-                var parent = this[i][parentNode];
+                var parent = el[parentNode];
                 var temp = !parent;
 
                 if (temp) {
                     parent = testEl;
-                    parent.appendChild(this[i]);
+                    parent.appendChild(el);
                 }
 
-                match = parent.querySelectorAll(selector).indexOf(this[i]) !== -1;
+                match = parent[querySelectorAll](selector).indexOf(el) !== -1;
 
                 if (temp) {
-                    testEl.removeChild(this[i]);
+                    testEl.removeChild(el);
                 }
 
                 if (match) {
@@ -354,7 +369,7 @@
          * @returns {Dom}
          */
         first: function () {
-            return this[length] > 0 ? dom(this[0]) : dom();
+            return this.eq(0);
         },
 
         /**
@@ -362,7 +377,7 @@
          * @returns {Dom}
          */
         last: function () {
-            return this[length] > 0 ? dom(this[this[length] - 1]) : dom();
+            return this.eq(-1);
         },
 
         /**
@@ -371,6 +386,9 @@
          * @returns {Dom}
          */
         eq: function (n) {
+            if (n < 0) {
+                return this[length] + n >= 0 ? dom(this[this[length] + n]) : dom();
+            }
             return this[length] - 1 >= n ? dom(this[n]) : dom();
         },
 
@@ -390,7 +408,7 @@
          * @returns {*}
          */
         on: function (event, fn) {
-            return this.each(function () {
+            return this[each](function () {
                 this.addEventListener(event, fn, false);
             });
         },
@@ -415,7 +433,7 @@
          * @returns {*}
          */
         off: function (event, fn) {
-            return this.each(function () {
+            return this[each](function () {
                 this.removeEventListener(event, fn, false);
             });
         },
@@ -425,7 +443,7 @@
          * @returns {*}
          */
         remove: function () {
-            return this.each(function () {
+            return this[each](function () {
                 if (this[parentNode]) {
                     this[parentNode].removeChild(this);
                 }
@@ -446,7 +464,7 @@
 
             var method = !value ? 'removeAttribute' : 'setAttribute';
 
-            return this.each(function () {
+            return this[each](function () {
                 this[method](key, value);
             });
         },
@@ -463,7 +481,7 @@
                 return this[length] > 0 ? this[0][key] : undefined;
             }
 
-            return this.each(function () {
+            return this[each](function () {
                 this[key] = value;
             });
         },
@@ -499,7 +517,7 @@
 
             }
 
-            return this.each(function () {
+            return this[each](function () {
                 this.value = value;
             });
         },
@@ -512,7 +530,7 @@
         children: function (selector) {
             var results = [];
 
-            this.each(function () {
+            this[each](function () {
                 results.push.apply(results, filter.call(this.childNodes, isElement));
             });
 
@@ -539,14 +557,14 @@
             }
 
             if (isObject(prop)) {
-                return this.each(function () {
+                return this[each](function () {
                     for (var key in prop) {
                         this.style[key] = prop[key];
                     }
                 });
             }
 
-            return this.each(function () {
+            return this[each](function () {
                 this.style[prop] = value;
             });
         },
@@ -579,7 +597,7 @@
 
            cls = cls.split(' ');
 
-            return this.each(function (el) {
+            return this[each](function (el) {
 
                 cls[forEach](function (c) {
                     return i ? removeClass(el, c) : addClass(el, c);
@@ -599,11 +617,11 @@
 
         Dom[prototype][parts[0]] = function (value) {
 
-            if (arguments.length === 0) {
-                return this.length > 0 ? this[0][parts[1]] : null;
+            if (arguments[length] === 0) {
+                return this[length] > 0 ? this[0][parts[1]] : null;
             }
 
-            return this.each(function () {
+            return this[each](function () {
                 this[parts[1]] = value;
             });
 
@@ -617,7 +635,7 @@
         Dom[prototype][method] = function (selector) {
             var results = [];
 
-            this.each(function () {
+            this[each](function () {
                 var el = this[method + (i < 1 ? 'Sibling' : 'Node')];
                 if (isElement(el) && (!isString(selector) || dom(el).is(selector))) {
                     results.push(el);
@@ -642,7 +660,7 @@
 
             var clone = this[length] > 0;
 
-            return this.each(function (target) {
+            return this[each](function (target) {
 
                 if (i > 1 && !target[parentNode]) {
                     return;
@@ -650,7 +668,7 @@
 
                 var root = i > 1 ? target[parentNode] : target;
                 var ref = [null, target.firstChild, target.nextSibling, target][i];
-                method = i === 0 ? 'appendChild' : 'insertBefore';
+                method = i === 0 ? method + 'Child' : 'insertBefore';
 
                 html[forEach](function (el) {
                     root[method](clone ? el.cloneNode(true) : el, ref);

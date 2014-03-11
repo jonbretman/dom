@@ -89,6 +89,36 @@ describe('dom', function () {
 
     });
 
+    describe('#find()', function () {
+
+        it('should return this if selector is not valid', function () {
+            var d = dom();
+            expect(d.find()).to.equal(d);
+            expect(d.find(null)).to.equal(d);
+            expect(d.find({})).to.equal(d);
+            expect(d.find(10)).to.equal(d);
+        });
+
+        it('should search inside the collection only', function () {
+
+            addTestHTML(
+                '<div id="test-find">',
+                    '<span class="test-find-inner"></span>',
+                    '<span class="test-find-container"><span class="test-find-inner"></span></span>',
+                    '<span class="test-find-container"></span>',
+                    '<span class="test-find-container"><span class="test-find-inner"></span></span>',
+                '</div>'
+            );
+
+            var root = dom('#test-find');
+
+            expect(root.find('.test-find-container')).to.have.length(3);
+            expect(root.find('.test-find-container').find('.test-find-inner')).to.have.length(2);
+
+        });
+
+    });
+
     describe('#addClass', function () {
 
         it('should return this', function () {
@@ -160,9 +190,17 @@ describe('dom', function () {
 
     describe('#hasClass()', function () {
 
+        it('should return false if the collection is empty', function () {
+            expect(dom().hasClass('foo')).to.equal(false);
+        });
+
         it('should return true if the first element in the collection has the given class', function () {
 
+            var el = document.createElement('div');
+            el.className = 'test-has-class';
 
+            expect(dom(el).hasClass('test-has-class')).to.equal(true);
+            expect(dom(el).hasClass('does-not-exist')).to.equal(false);
 
         });
 
@@ -209,6 +247,14 @@ describe('dom', function () {
 
     describe('#map()', function () {
 
+        it('should return this if parameter is not a function', function () {
+            var d = dom();
+            expect(d.map()).to.equal(d);
+            expect(d.map(null)).to.equal(d);
+            expect(d.map({})).to.equal(d);
+            expect(d.map()).to.equal(d);
+        });
+
         it('should create a new object that is the result of calling the function for each element in the collection', function () {
 
             addTestHTML(
@@ -239,6 +285,18 @@ describe('dom', function () {
 
     describe('#filter()', function () {
 
+        it('should return this if parameter is not a function or a string', function () {
+            var d = dom();
+            expect(d.filter()).to.equal(d);
+            expect(d.filter(null)).to.equal(d);
+            expect(d.filter({})).to.equal(d);
+            expect(d.filter()).to.equal(d);
+        });
+
+    });
+
+    describe('#filter(function)', function () {
+
         it('should create a new object that contains only those elements for which the function returned truthy values', function () {
 
             addTestHTML(
@@ -268,7 +326,32 @@ describe('dom', function () {
 
     });
 
+    describe('#filter(selector)', function () {
+
+        it('should filter the collection using the selector', function () {
+
+            addTestHTML(
+                '<div class="test-filter" id="one"></div>',
+                '<div class="test-filter" id="two"></div>',
+                '<div class="test-filter" id="three"></div>'
+            );
+
+            var d = dom('.test-filter');
+
+            expect(d).to.have.length(3);
+            expect(d.filter('#two')).to.have.length(1);
+
+        });
+
+    });
+
     describe('#closest()', function () {
+
+        it('should return a new empty collection if the collection is empty', function () {
+            var d = dom();
+            expect(d.closest('.foo')).to.have.length(0);
+            expect(d.closest('.foo')).to.not.equal(d);
+        });
 
         it('should find the first element matching the selector', function () {
 
@@ -290,6 +373,15 @@ describe('dom', function () {
 
     describe('#is()', function () {
 
+        it('should return false if selector is invalid', function () {
+            var el = document.createElement('div');
+            expect(dom(el).is()).to.equal(false);
+        });
+
+    });
+
+    describe('#is(selector)', function () {
+
         it('should return true if the passed selector matches any elements in the object', function () {
 
             var el = document.createElement('div');
@@ -310,6 +402,26 @@ describe('dom', function () {
             expect(dom(arr).is('.two')).to.be.ok();
             expect(dom(arr).is('span')).to.be.ok();
             expect(dom(arr).is('.not-present')).to.not.be.ok();
+        });
+
+    });
+
+    describe('#is(element)', function () {
+
+        it('should return true if passed a node that is in the collection', function () {
+
+            var el1 = document.createElement('div');
+            var el2 = document.createElement('div');
+            var el3 = document.createElement('div');
+            var el4 = document.createElement('div');
+
+            var d = dom([el1, el2, el3]);
+
+            expect(d.is(el1)).to.equal(true);
+            expect(d.is(el2)).to.equal(true);
+            expect(d.is(el3)).to.equal(true);
+            expect(d.is(el4)).to.equal(false);
+
         });
 
     });
@@ -376,6 +488,18 @@ describe('dom', function () {
             });
         });
 
+        it('should accept a negative index', function () {
+            var arr = [
+                document.createElement('span'),
+                document.createElement('span'),
+                document.createElement('span')
+            ];
+
+            expect(dom(arr).eq(-1)).to.have.length(1);
+            expect(dom(arr).eq(-2)[0]).to.equal(arr[1]);
+            expect(dom(arr).eq(-1)[0]).to.equal(arr[2]);
+        });
+
     });
 
     describe('#remove()', function () {
@@ -427,6 +551,10 @@ describe('dom', function () {
             expect(d.attr('foo', 'bar')).to.equal(d);
         });
 
+        it('should return null if the collection is empty', function () {
+            expect(dom().attr('value')).to.equal(null);
+        });
+
         it('should set or remove the attribute with the given value for each element in the collection', function () {
 
             var input = document.createElement('input');
@@ -444,6 +572,17 @@ describe('dom', function () {
             expect(inputs[0].type).to.equal('password');
             expect(inputs[1].type).to.equal('password');
             expect(inputs[2].type).to.equal('password');
+        });
+
+        it('should remove the attribute if the value is falsey', function () {
+            var div = document.createElement('div');
+
+            dom(div).attr('data-key', 'some-value');
+            expect(dom(div).attr('data-key')).to.equal('some-value');
+
+            dom(div).attr('data-key', null);
+            expect(dom(div).attr('data-key')).to.equal(null);
+
         });
 
     });
@@ -468,6 +607,10 @@ describe('dom', function () {
         it('should return this', function () {
             var d = dom();
             expect(d.prop('foo', 'bar')).to.equal(d);
+        });
+
+        it('should return undefined if the collection is empty', function () {
+            expect(dom().prop('id')).to.equal(undefined);
         });
 
         it('should set the property with the given value for each element in the collection', function () {
@@ -522,6 +665,23 @@ describe('dom', function () {
             });
 
             expect(dom(select).val()).to.eql(['option-1', 'option-3']);
+        });
+
+    });
+
+    describe('#val(value)', function () {
+
+        it('should set the value of each element in the collection', function () {
+
+            var arr = [1,2,3].map(function () {
+                return document.createElement('input');
+            });
+
+            dom(arr).val('the value');
+
+            arr.forEach(function (el) {
+                expect(el.value).to.equal('the value');
+            });
         });
 
     });
