@@ -721,6 +721,10 @@ describe('dom', function () {
             expect(dom('#test-root').html()).to.equal('<span></span><p></p><ul><li></li></ul>');
         });
 
+        it('should return null if the collection is empty', function () {
+            expect(dom().html()).to.equal(null);
+        });
+
     });
 
     describe('#html(html)', function () {
@@ -763,6 +767,60 @@ describe('dom', function () {
             expect(dom(el).css('float')).to.equal('left');
         });
 
+        it('should return an empty string if an invalid property is passed', function () {
+            expect(dom(document.createElement('div')).css('foo-bar')).to.equal('');
+        });
+
+        it('should return an empty string if the collection is empty', function () {
+            expect(dom().css('color')).to.equal('');
+        });
+
+    });
+
+    describe('#css(prop, key)', function () {
+
+        it('should set the styles on each element in the collection', function () {
+
+            var els = [
+                document.createElement('div'),
+                document.createElement('div'),
+                document.createElement('div')
+            ];
+
+            dom(els).css('line-height', '20px');
+
+            els.forEach(function (el) {
+                expect(el.style.lineHeight).to.equal('20px');
+            });
+
+        });
+
+    });
+
+    describe('#css(map)', function () {
+
+        it('should set each style on each element in the collection', function () {
+
+            var els = [
+                document.createElement('div'),
+                document.createElement('div'),
+                document.createElement('div')
+            ];
+
+            dom(els).css({
+                fontSize: '10px',
+                color: 'red',
+                'padding-top': '50px'
+            });
+
+            els.forEach(function (el) {
+                expect(el.style.fontSize).to.equal('10px');
+                expect(el.style.color).to.equal('red');
+                expect(el.style.paddingTop).to.equal('50px');
+            });
+
+        });
+
     });
 
     describe('#offset()', function () {
@@ -790,6 +848,424 @@ describe('dom', function () {
             expect(offset).to.have.property('width', 100);
             expect(offset).to.have.property('height', 220);
 
+        });
+
+    });
+
+    describe('#previous()', function () {
+
+        it('should return a new collection containing the previous elements of each element in the original collection', function () {
+
+            addTestHTML(
+                '<span class="foo"></span><span class="test-previous"></span>',
+                '<span class="foo"></span><span class="test-previous"></span>',
+                '<span class="foo"></span><span class="test-previous"></span>'
+            );
+
+            var previous = dom('#test-previous').find('.test-previous').previous();
+            expect(previous).to.have.length(3);
+        });
+
+    });
+
+    describe('#previous(selector)', function () {
+
+        it('should filter the results by the passed selector', function () {
+
+            addTestHTML(
+                '<span class="foo"></span><span class="test-previous"></span>',
+                '<span class="foo bar"></span><span class="test-previous"></span>',
+                '<span class="foo"></span><span class="test-previous"></span>'
+            );
+
+            var previous = dom('.test-previous').previous('.bar');
+            expect(previous).to.have.length(1);
+        });
+
+    });
+
+    describe('#next()', function () {
+
+        it('should return a new collection containing the next elements of each element in the original collection', function () {
+
+            addTestHTML(
+                '<span class="test-next"></span><span class="foo"></span>',
+                '<span class="test-next"></span><span class="foo"></span>',
+                '<span class="test-next"></span><span class="foo"></span>'
+            );
+
+            var next = dom('.test-next').next();
+            expect(next).to.have.length(3);
+        });
+
+    });
+
+    describe('#next(selector)', function () {
+
+        it('should filter the results by the passed selector', function () {
+
+            addTestHTML(
+                '<span class="test-next"></span><span class="foo"></span>',
+                '<span class="test-next"></span><span class="foo bar"></span>',
+                '<span class="test-next"></span><span class="foo"></span>'
+            );
+
+            var next = dom('.test-next').next('.bar');
+            expect(next).to.have.length(1);
+        });
+
+    });
+
+    describe('#parent()', function () {
+
+        it('should return a new collection containing the parent elements of each element in the original collection', function () {
+
+            addTestHTML(
+                '<span class="foo"><span class="test-parent"></span></span>',
+                '<span class="foo"><span class="test-parent"></span></span>',
+                '<span class="foo"><span class="test-parent"></span></span>'
+            );
+
+            var parent = dom('.test-parent').parent();
+            expect(parent).to.have.length(3);
+        });
+
+    });
+
+    describe('#parent(selector)', function () {
+
+        it('should filter the results by the passed selector', function () {
+
+            addTestHTML(
+                '<span class="foo"><span class="test-parent"></span></span>',
+                '<span class="foo bar"><span class="test-parent"></span></span>',
+                '<span class="foo"><span class="test-parent"></span></span>'
+            );
+
+            var parent = dom('.test-parent').parent('.bar');
+            expect(parent).to.have.length(1);
+        });
+
+    });
+
+    describe('#append()', function () {
+
+        it('should return this if argument is invalid', function () {
+            var d = dom();
+            expect(d.append(null)).to.equal(d);
+            expect(d.append({})).to.equal(d);
+            expect(d.append()).to.equal(d);
+        });
+
+        it('should accept an html string', function () {
+
+            addTestHTML(
+                '<span class="test-append"><span class="existing"></span></span>',
+                '<span class="test-append"><span class="existing"></span></span>',
+                '<span class="test-append"><span class="existing"></span></span>'
+            );
+
+            dom('.test-append').append('<span class="appended"></span>');
+
+            dom('.test-append').each(function (el) {
+                expect(el.children).to.have.length(2);
+                expect(el.children[1]).to.have.property('className', 'appended');
+            });
+        });
+
+        it('should accept a DOM element', function () {
+
+            addTestHTML(
+                '<span class="test-append"><span class="existing"></span></span>',
+                '<span class="test-append"><span class="existing"></span></span>',
+                '<span class="test-append"><span class="existing"></span></span>'
+            );
+
+            var toBeAppended = document.createElement('span');
+            toBeAppended.className = 'appended';
+
+            dom('.test-append').append(toBeAppended);
+
+            dom('.test-append').each(function (el) {
+                expect(el.children).to.have.length(2);
+                expect(el.children[1]).to.have.property('className', 'appended');
+            });
+        });
+
+        it('should accept a dom() collection', function () {
+
+            addTestHTML(
+                '<span class="test-append"><span class="existing"></span></span>',
+                '<span class="test-append"><span class="existing"></span></span>',
+                '<span class="test-append"><span class="existing"></span></span>'
+            );
+
+            var toBeAppended = dom('<span></span><span></span>').addClass('appended');
+
+            dom('.test-append').append(toBeAppended);
+
+            dom('.test-append').each(function (el) {
+                expect(el.children).to.have.length(3);
+                expect(el.children[1]).to.have.property('className', 'appended');
+                expect(el.children[2]).to.have.property('className', 'appended');
+            });
+        });
+
+    });
+
+    describe('#prepend()', function () {
+
+        it('should return this if argument is invalid', function () {
+            var d = dom();
+            expect(d.prepend(null)).to.equal(d);
+            expect(d.prepend({})).to.equal(d);
+            expect(d.prepend()).to.equal(d);
+        });
+
+        it('should accept an html string', function () {
+
+            addTestHTML(
+                '<span class="test-prepend"><span class="existing"></span></span>',
+                '<span class="test-prepend"><span class="existing"></span></span>',
+                '<span class="test-prepend"><span class="existing"></span></span>'
+            );
+
+            dom('.test-prepend').prepend('<span class="prepended"></span>');
+
+            dom('.test-prepend').each(function (el) {
+                expect(el.children).to.have.length(2);
+                expect(el.children[0]).to.have.property('className', 'prepended');
+            });
+        });
+
+        it('should accept a DOM element', function () {
+
+            addTestHTML(
+                '<span class="test-prepend"><span class="existing"></span></span>',
+                '<span class="test-prepend"><span class="existing"></span></span>',
+                '<span class="test-prepend"><span class="existing"></span></span>'
+            );
+
+            var toBePrepended = document.createElement('span');
+            toBePrepended.className = 'prepended';
+
+            dom('.test-prepend').prepend(toBePrepended);
+
+            dom('.test-prepend').each(function (el) {
+                expect(el.children).to.have.length(2);
+                expect(el.children[0]).to.have.property('className', 'prepended');
+            });
+        });
+
+        it('should accept a dom() collection', function () {
+
+            addTestHTML(
+                '<span class="test-prepend"><span class="existing"></span></span>',
+                '<span class="test-prepend"><span class="existing"></span></span>',
+                '<span class="test-prepend"><span class="existing"></span></span>'
+            );
+
+            var toBePrepended = dom('<span></span><span></span>').addClass('prepended');
+
+            dom('.test-prepend').prepend(toBePrepended);
+
+            dom('.test-prepend').each(function (el) {
+                expect(el.children).to.have.length(3);
+                expect(el.children[0]).to.have.property('className', 'prepended');
+                expect(el.children[1]).to.have.property('className', 'prepended');
+            });
+        });
+
+    });
+
+    describe('#after()', function () {
+
+        beforeEach(function () {
+            addTestHTML(
+                '<div id="test-after">',
+                    '<span class="test-after"></span>',
+                    '<span class="test-after-placeholder"></span>',
+                    '<span class="test-after"></span>',
+                    '<span class="test-after-placeholder"></span>',
+                    '<span class="test-after"></span>',
+                    '<span class="test-after-placeholder"></span>',
+                '</div>'
+            );
+        });
+
+        it('should return this if argument is invalid', function () {
+            var d = dom();
+            expect(d.after(null)).to.equal(d);
+            expect(d.after({})).to.equal(d);
+            expect(d.after()).to.equal(d);
+        });
+
+        it('should do nothing if an element has no parent', function () {
+            expect(dom('<span></span>').after('<span></span>')).to.be.ok();
+        });
+
+        it('should not clone the passed element if the collection has only one element', function () {
+            var root = document.createElement('div');
+            var child = document.createElement('span');
+            root.appendChild(child);
+            var secondChild = document.createElement('span');
+            dom(child).after(secondChild);
+            expect(root.children[1]).to.equal(secondChild);
+        });
+
+        it('should accept an html string', function () {
+
+            dom('.test-after').after('<span class="added-after"></span>');
+            var el = document.getElementById('test-after');
+
+            expect(el.children).to.have.length(9);
+            expect(el.children[1]).to.have.property('className', 'added-after');
+            expect(el.children[2]).to.have.property('className', 'test-after-placeholder');
+            expect(el.children[4]).to.have.property('className', 'added-after');
+        });
+
+        it('should accept a DOM element', function () {
+
+            var toBeAddedAfter = document.createElement('span');
+            toBeAddedAfter.className = 'added-after';
+
+            dom('.test-after').after(toBeAddedAfter);
+            var el = document.getElementById('test-after');
+
+            expect(el.children).to.have.length(9);
+            expect(el.children[1]).to.have.property('className', 'added-after');
+            expect(el.children[2]).to.have.property('className', 'test-after-placeholder');
+            expect(el.children[4]).to.have.property('className', 'added-after');
+        });
+
+        it('should accept a dom() collection', function () {
+
+            var toBeAddedAfter = dom('<span></span>').addClass('added-after');
+
+            dom('.test-after').after(toBeAddedAfter);
+            var el = document.getElementById('test-after');
+
+            expect(el.children).to.have.length(9);
+            expect(el.children[1]).to.have.property('className', 'added-after');
+            expect(el.children[2]).to.have.property('className', 'test-after-placeholder');
+            expect(el.children[4]).to.have.property('className', 'added-after');
+        });
+
+    });
+
+    describe('#before()', function () {
+
+        beforeEach(function () {
+            addTestHTML(
+                '<div id="test-before">',
+                    '<span class="test-before-placeholder"></span>',
+                    '<span class="test-before"></span>',
+                    '<span class="test-before-placeholder"></span>',
+                    '<span class="test-before"></span>',
+                    '<span class="test-before-placeholder"></span>',
+                    '<span class="test-before"></span>',
+                '</div>'
+            );
+        });
+
+        it('should return this if argument is invalid', function () {
+            var d = dom();
+            expect(d.before(null)).to.equal(d);
+            expect(d.before({})).to.equal(d);
+            expect(d.before()).to.equal(d);
+        });
+
+        it('should do nothing if an element has no parent', function () {
+            expect(dom('<span></span>').before('<span></span>')).to.be.ok();
+        });
+
+        it('should not clone the passed element if the collection has only one element', function () {
+            var root = document.createElement('div');
+            var child = document.createElement('span');
+            root.appendChild(child);
+            var firstChild = document.createElement('span');
+            dom(child).before(firstChild);
+            expect(root.children[0]).to.equal(firstChild);
+        });
+
+        it('should accept an html string', function () {
+
+            dom('.test-before').before('<span class="added-before"></span>');
+            var el = document.getElementById('test-before');
+
+            expect(el.children).to.have.length(9);
+            expect(el.children[1]).to.have.property('className', 'added-before');
+            expect(el.children[2]).to.have.property('className', 'test-before');
+            expect(el.children[4]).to.have.property('className', 'added-before');
+        });
+
+        it('should accept a DOM element', function () {
+
+            var toBeAddedBefore = document.createElement('span');
+            toBeAddedBefore.className = 'added-before';
+
+            dom('.test-before').before(toBeAddedBefore);
+            var el = document.getElementById('test-before');
+
+            expect(el.children).to.have.length(9);
+            expect(el.children[1]).to.have.property('className', 'added-before');
+            expect(el.children[2]).to.have.property('className', 'test-before');
+            expect(el.children[4]).to.have.property('className', 'added-before');
+        });
+
+        it('should accept a dom() collection', function () {
+
+            var toBeAddedBefore = dom('<span></span>').addClass('added-before');
+
+            dom('.test-before').before(toBeAddedBefore);
+            var el = document.getElementById('test-before');
+
+            expect(el.children).to.have.length(9);
+            expect(el.children[1]).to.have.property('className', 'added-before');
+            expect(el.children[2]).to.have.property('className', 'test-before');
+            expect(el.children[4]).to.have.property('className', 'added-before');
+        });
+
+    });
+
+    describe('#trigger()', function () {
+
+        it('should trigger the event on all elements in the collection', function () {
+
+            var els = [
+                document.createElement('div'),
+                document.createElement('div'),
+                document.createElement('div')
+            ];
+
+            var spy = sinon.spy();
+
+            els.forEach(function (el) {
+                el.addEventListener('click', spy);
+            });
+
+            dom(els).trigger('click');
+
+            sinon.assert.callCount(spy, 3);
+        });
+
+        it('should trigger events that bubble', function () {
+
+            addTestHTML(
+                '<div class="test-trigger"><span><span class="trigger-target"></span></span></div>',
+                '<div class="test-trigger"><span><span class="trigger-target"></span></span></div>',
+                '<div class="test-trigger"><span><span class="trigger-target"></span></span></div>'
+            );
+
+            var spy = sinon.spy();
+
+            dom('.test-trigger').each(function (el) {
+                el.addEventListener('click', spy);
+            });
+
+            dom('.trigger-target').trigger('click');
+
+            sinon.assert.callCount(spy, 3);
         });
 
     });

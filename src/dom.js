@@ -77,6 +77,17 @@
     var isObject = generateTypeMethod('Object');
 
     /**
+     * Converts a string to camel case.
+     * @param {string} str
+     * @returns {string}
+     */
+    var normaliseCSSProperty = function (str) {
+        return str === 'float' ? 'cssFloat' : str.replace(/-(\w)/g, function (match, group) {
+            return group.toUpperCase();
+        });
+    };
+
+    /**
      *
      * @param html
      * @returns {*|Array}
@@ -340,7 +351,7 @@
                     }
                 }
 
-                // fall back to performing a selector:
+                //fall back to performing a selector:
                 var match;
                 var parent = el[parentNode];
                 var temp = !parent;
@@ -423,6 +434,47 @@
             return this.on(event, function handler () {
                 this.removeEventListener(event, handler, false);
                 return fn.apply(this, arguments);
+            });
+        },
+
+        /**
+         *
+         * @param {string} eventName
+         */
+        trigger: function (eventName) {
+            return this.each(function (el) {
+
+                var event, eventClass;
+
+                if (el.dispatchEvent) {
+
+                    switch (eventName) {
+                        case 'click':
+                        case 'mousedown':
+                        case 'mouseup':
+                            eventClass = 'MouseEvents';
+                            break;
+
+                        case 'focus':
+                        case 'change':
+                        case 'blur':
+                        case 'select':
+                            eventClass = 'HTMLEvents';
+                            break;
+                        default:
+                            return;
+                    }
+
+                    event = doc.createEvent(eventClass);
+                    event.initEvent(eventName, true, true);
+                    event.synthetic = true;
+                    el.dispatchEvent(event, true);
+                }
+                else if (el.fireEvent) {
+                    event = doc.createEventObject();
+                    event.synthetic = true;
+                    el.fireEvent('on' + eventName, event);
+                }
             });
         },
 
@@ -552,17 +604,20 @@
             if (arguments[length] === 1 && isString(prop)) {
                 var el = this[0];
                 var style = el && el.style;
-                var computed = getComputedStyle(el);
+                var computed = el ? getComputedStyle(el, null) : null;
+                prop = normaliseCSSProperty(prop);
                 return el ? style[prop] || computed[prop] || '' : '';
             }
 
             if (isObject(prop)) {
                 return this[each](function () {
                     for (var key in prop) {
-                        this.style[key] = prop[key];
+                        this.style[normaliseCSSProperty(key)] = prop[key];
                     }
                 });
             }
+
+            prop = normaliseCSSProperty(prop);
 
             return this[each](function () {
                 this.style[prop] = value;
@@ -636,7 +691,7 @@
             var results = [];
 
             this[each](function () {
-                var el = this[method + (i < 1 ? 'Sibling' : 'Node')];
+                var el = this[method + (i < 2 ? 'ElementSibling' : 'Element')];
                 if (isElement(el) && (!isString(selector) || dom(el).is(selector))) {
                     results.push(el);
                 }
@@ -650,6 +705,8 @@
     // append(), prepend(), after(), and before() methods
     ['append', 'prepend', 'after', 'before'][forEach](function (method, i) {
 
+        var domMethod = i === 0 ? method + 'Child' : 'insertBefore';
+
         Dom[prototype][method] = function (html) {
 
             html = isElement(html) ? [html] : isString(html) ? fromHtml(html) : html;
@@ -658,7 +715,10 @@
                 return this;
             }
 
-            var clone = this[length] > 0;
+            // turn into a proper array
+            html = slice.call(html);
+
+            var clone = this[length] > 1;
 
             return this[each](function (target) {
 
@@ -668,10 +728,9 @@
 
                 var root = i > 1 ? target[parentNode] : target;
                 var ref = [null, target.firstChild, target.nextSibling, target][i];
-                method = i === 0 ? method + 'Child' : 'insertBefore';
 
                 html[forEach](function (el) {
-                    root[method](clone ? el.cloneNode(true) : el, ref);
+                    root[domMethod](clone ? el.cloneNode(true) : el, ref);
                 });
             });
         };
