@@ -1251,21 +1251,108 @@ describe('dom', function () {
 
         it('should trigger events that bubble', function () {
 
+            ['click', 'mouseup', 'mousedown', 'focus', 'change', 'blur', 'select'].forEach(function (event) {
+
+                addTestHTML(
+                    '<div class="test-trigger"><span><span class="trigger-target"></span></span></div>',
+                    '<div class="test-trigger"><span><span class="trigger-target"></span></span></div>',
+                    '<div class="test-trigger"><span><span class="trigger-target"></span></span></div>'
+                );
+
+                var spy = sinon.spy();
+
+                dom('.test-trigger').each(function (el) {
+                    el.addEventListener(event, spy);
+                });
+
+                dom('.trigger-target').trigger(event);
+
+                sinon.assert.callCount(spy, 3);
+
+            });
+        });
+
+        it('should handle invalid events', function () {
+            var d = dom(document.createElement('div'));
+            expect(d.trigger('foo-bar', function () {})).to.equal(d);
+        });
+
+    });
+
+    describe('#on()', function () {
+
+        it('should return this', function () {
+            var d = dom(document.createElement('div'));
+            expect(d.on('click', function () {})).to.equal(d);
+        });
+
+        it('should add a listener for the given event', function () {
+            var el = document.createElement('div');
+            var spy = sinon.spy();
+            dom(el).on('click', spy);
+            dom(el).trigger('click');
+            sinon.assert.callCount(spy, 1);
+        });
+
+    });
+
+    describe('#off()', function () {
+
+        it('should return this', function () {
+            var d = dom(document.createElement('div'));
+            expect(d.off('click', function () {})).to.equal(d);
+        });
+
+        it('should remove a listener for the given event', function () {
+            var el = document.createElement('div');
+            var spy = sinon.spy();
+            dom(el).on('click', spy);
+            dom(el).trigger('click');
+            sinon.assert.callCount(spy, 1);
+            dom(el).off('click', spy);
+            dom(el).trigger('click');
+            sinon.assert.callCount(spy, 1);
+        });
+
+    });
+
+    describe('#once()', function () {
+
+        it('should remove the hamdler after it has been called once', function () {
+            var el = document.createElement('div');
+            var spy = sinon.spy();
+            dom(el).once('click', spy);
+            dom(el).trigger('click');
+            dom(el).trigger('click');
+            dom(el).trigger('click');
+            dom(el).trigger('click');
+            sinon.assert.callCount(spy, 1);
+        });
+
+    });
+
+    describe('dom.delegate()', function () {
+
+        it('should only call the handler if the event happened within the given selector', function () {
+
             addTestHTML(
-                '<div class="test-trigger"><span><span class="trigger-target"></span></span></div>',
-                '<div class="test-trigger"><span><span class="trigger-target"></span></span></div>',
-                '<div class="test-trigger"><span><span class="trigger-target"></span></span></div>'
+                '<div id="test-delegate">',
+                    '<div class="foo-bar">',
+                        '<div class="click-target"></div>',
+                     '</div>',
+                    '<div class="foo-bar-baz">',
+                        '<div class="other-click-target"></div>',
+                    '</div>',
+                '</div>'
             );
 
             var spy = sinon.spy();
-
-            dom('.test-trigger').each(function (el) {
-                el.addEventListener('click', spy);
-            });
-
-            dom('.trigger-target').trigger('click');
-
-            sinon.assert.callCount(spy, 3);
+            dom('#test-delegate').on('click', sinon.spy(dom.delegate('.foo-bar', spy)));
+            dom('.click-target').trigger('click');
+            dom('.click-target').trigger('click');
+            dom('.other-click-target').trigger('click');
+            dom('.other-click-target').trigger('click');
+            sinon.assert.callCount(spy, 2);
         });
 
     });
