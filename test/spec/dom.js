@@ -93,16 +93,17 @@ describe('dom', function () {
 
         it('should return this if selector is not valid', function () {
             var d = dom();
-            expect(d.find()).to.equal(d);
-            expect(d.find(null)).to.equal(d);
-            expect(d.find({})).to.equal(d);
-            expect(d.find(10)).to.equal(d);
+            expect(d.find()).to.have.length(0);
+            expect(d.find(null)).to.have.length(0);
+            expect(d.find({})).to.have.length(0);
+            expect(d.find(10)).to.have.length(0);
         });
 
         it('should search inside the collection only', function () {
 
             addTestHTML(
                 '<div id="test-find">',
+                    '<span id="test-find-with-id"></span>',
                     '<span class="test-find-inner"></span>',
                     '<span class="test-find-container"><span class="test-find-inner"></span></span>',
                     '<span class="test-find-container"></span>',
@@ -114,7 +115,11 @@ describe('dom', function () {
 
             expect(root.find('.test-find-container')).to.have.length(3);
             expect(root.find('.test-find-container').find('.test-find-inner')).to.have.length(2);
+            expect(root.find('.test-find-container').find('#test-find-with-id')).to.have.length(0);
+        });
 
+        it('should not throw exceptions with invalid selectors', function () {
+            expect(dom(document).find('<not a valid selector>')).to.be.ok();
         });
 
     });
@@ -862,7 +867,7 @@ describe('dom', function () {
                 '<span class="foo"></span><span class="test-previous"></span>'
             );
 
-            var previous = dom('#test-previous').find('.test-previous').previous();
+            var previous = dom('.test-previous').previous();
             expect(previous).to.have.length(3);
         });
 

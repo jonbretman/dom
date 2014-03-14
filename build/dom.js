@@ -140,7 +140,7 @@
     /**
      *
      * @param selector
-     * @returns {*}
+     * @returns {Dom}
      * @constructor
      */
     var Dom = function (selector) {
@@ -152,22 +152,35 @@
         // fast track 'document' and 'body' selectors
         selector = selector === 'body' ? doc.body : selector === 'document' ? doc : selector;
 
+        // optimize for id selector
+        if (idRegEx.test(selector)) {
+            selector = doc.getElementById(selector.substring(1));
+
+            if (!selector) {
+                return this;
+            }
+        }
+
+        // an element, the document, or window
         if (isElement(selector) || selector === doc || selector === win) {
             this[0] = selector;
             this[length] = 1;
             return this;
         }
 
+        // html string to be converted into dom elements
         if (isString(selector) && htmlRegEx.test(selector)) {
             selector = fromHtml(selector);
         }
 
+        // array, NodeList etc...
         if (arrayLike(selector)) {
             push.apply(this, slice.call(selector));
             return this;
         }
 
-        return this.find(selector);
+        // perform dom query
+        return this.find(selector, document);
     };
 
     Dom[prototype] = {
@@ -179,18 +192,14 @@
 
         /**
          *
-         * @param selector
-         * @returns {*}
+         * @param {String} selector
+         * @param {HTMLElement} [root] Only used internally.
+         * @returns {Dom}
          */
-        find: function (selector) {
+        find: function (selector, root) {
 
             if (!isString(selector)) {
-                return this;
-            }
-
-            // optimize for id selector
-            if (idRegEx.test(selector)) {
-                return dom(doc.getElementById(selector.substring(1)));
+                return dom();
             }
 
             var results;
@@ -207,11 +216,15 @@
             if (this[length] > 0) {
                 results = [];
                 for (var i = 0; i < this[length]; i++) {
-                    results.push.apply(results, slice.call(this[i][method](selector)));
+                    // catch SyntaxError's for querySelectorAll and querySelector
+                    try {
+                        results.push.apply(results, slice.call(this[i][method](selector)));
+                    }
+                    catch (e) {}
                 }
             }
-            else {
-                results = doc[method](selector);
+            else if (root) {
+                results = root[method](selector);
             }
 
             return dom(results);
@@ -219,8 +232,8 @@
 
         /**
          *
-         * @param fn
-         * @returns {*}
+         * @param {Function} fn
+         * @returns {Dom}
          */
         each: function (fn) {
 
@@ -237,7 +250,7 @@
 
         /**
          *
-         * @param fn
+         * @param {Function} fn
          * @returns {Dom}
          */
         map: function (fn) {
@@ -253,7 +266,7 @@
 
         /**
          *
-         * @param fn
+         * @param {Function} fn
          * @returns {Dom}
          */
         filter: function (fn) {
@@ -279,8 +292,8 @@
 
         /**
          *
-         * @param c
-         * @returns {boolean}
+         * @param {String} c
+         * @returns {Boolean}
          */
         hasClass: function (c) {
             return this[length] === 0 ? false : hasClass(this[0], c);
@@ -288,8 +301,8 @@
 
         /**
          *
-         * @param selector
-         * @returns {*}
+         * @param {String} selector
+         * @returns {Dom}
          */
         closest: function (selector) {
 
@@ -313,8 +326,8 @@
 
         /**
          *
-         * @param selector
-         * @returns {boolean}
+         * @param {String|HTMLElement} selector
+         * @returns {Boolean}
          */
         is: function (selector) {
 
@@ -393,7 +406,7 @@
 
         /**
          *
-         * @param n
+         * @param {Number} n
          * @returns {Dom}
          */
         eq: function (n) {
@@ -405,8 +418,8 @@
 
         /**
          *
-         * @param n
-         * @returns {*}
+         * @param {Number} n
+         * @returns {HTMLElement|Null}
          */
         get: function (n) {
             return arguments[length] === 0 ? this.toArray() : this[length] - 1 >= n ? this[n] : null;
@@ -414,9 +427,9 @@
 
         /**
          *
-         * @param event
-         * @param fn
-         * @returns {*}
+         * @param {String} event
+         * @param {Function} fn
+         * @returns {Dom}
          */
         on: function (event, fn) {
             return this[each](function () {
@@ -426,12 +439,12 @@
 
         /**
          *
-         * @param event
-         * @param fn
-         * @returns {*}
+         * @param {String} event
+         * @param {Function} fn
+         * @returns {Dom}
          */
         once: function (event, fn) {
-            return this.on(event, function handler () {
+            return this.on(event, function handler() {
                 this.removeEventListener(event, handler, false);
                 return fn.apply(this, arguments);
             });
@@ -439,7 +452,7 @@
 
         /**
          *
-         * @param {string} eventName
+         * @param {String} eventName
          */
         trigger: function (eventName) {
             return this.each(function (el) {
@@ -480,9 +493,9 @@
 
         /**
          *
-         * @param event
-         * @param fn
-         * @returns {*}
+         * @param {String} event
+         * @param {Function} fn
+         * @returns {Dom}
          */
         off: function (event, fn) {
             return this[each](function () {
@@ -492,7 +505,7 @@
 
         /**
          *
-         * @returns {*}
+         * @returns {Dom}
          */
         remove: function () {
             return this[each](function () {
@@ -504,9 +517,9 @@
 
         /**
          *
-         * @param key
-         * @param value
-         * @returns {*}
+         * @param {String} key
+         * @param {String} [value]
+         * @returns {String|Null|Dom}
          */
         attr: function (key, value) {
 
@@ -523,9 +536,9 @@
 
         /**
          *
-         * @param key
-         * @param value
-         * @returns {*}
+         * @param {String} key
+         * @param {String} [value]
+         * @returns {String|Undefined|Dom}
          */
         prop: function (key, value) {
 
@@ -540,8 +553,8 @@
 
         /**
          *
-         * @param key
-         * @returns {*}
+         * @param {String} key
+         * @returns {String[]}
          */
         pluck: function (key) {
             return this.map(function (element) {
@@ -551,8 +564,8 @@
 
         /**
          *
-         * @param value
-         * @returns {*}
+         * @param {String} [value]
+         * @returns {String[]|String|Dom}
          */
         val: function (value) {
 
@@ -576,7 +589,7 @@
 
         /**
          *
-         * @param selector
+         * @param {String} [selector]
          * @returns {Dom}
          */
         children: function (selector) {
@@ -597,7 +610,7 @@
          *
          * @param {Object|String} prop
          * @param {String} [value]
-         * @returns {String|dom}
+         * @returns {String|Dom}
          */
         css: function (prop, value) {
 
@@ -646,11 +659,12 @@
 
     };
 
+    // addClass() and removeClass() methods
     ['addClass', 'removeClass'][forEach](function (method, i) {
 
         Dom[prototype][method] = function (cls) {
 
-           cls = cls.split(' ');
+            cls = cls.split(' ');
 
             return this[each](function (el) {
 
