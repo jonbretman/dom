@@ -1246,6 +1246,7 @@ describe('dom', function () {
             var spy = sinon.spy();
 
             els.forEach(function (el) {
+                testRoot.appendChild(el);
                 el.addEventListener('click', spy);
             });
 
@@ -1293,6 +1294,7 @@ describe('dom', function () {
 
         it('should add a listener for the given event', function () {
             var el = document.createElement('div');
+            testRoot.appendChild(el);
             var spy = sinon.spy();
             dom(el).on('click', spy);
             dom(el).trigger('click');
@@ -1310,6 +1312,7 @@ describe('dom', function () {
 
         it('should remove a listener for the given event', function () {
             var el = document.createElement('div');
+            testRoot.appendChild(el);
             var spy = sinon.spy();
             dom(el).on('click', spy);
             dom(el).trigger('click');
@@ -1325,6 +1328,7 @@ describe('dom', function () {
 
         it('should remove the hamdler after it has been called once', function () {
             var el = document.createElement('div');
+            testRoot.appendChild(el);
             var spy = sinon.spy();
             dom(el).once('click', spy);
             dom(el).trigger('click');

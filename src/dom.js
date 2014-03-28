@@ -15,11 +15,28 @@
     var forEach = 'forEach';
     var each = 'each';
     var querySelectorAll = 'querySelectorAll';
+    var removeEventListener = 'removeEventListener';
     var idRegEx = /^#[\w\-_]+$/;
     var classRegEx = /^\.[\w\-_]+$/;
     var tagRegEx = /^[a-z]+$/;
     var htmlRegEx = /^<.*?>$/;
     var addClass, removeClass, hasClass;
+    var domReadyListeners = [];
+    var domReadyListener;
+    var domContentLoaded = 'DOMContentLoaded';
+    var domIsReady = /^loaded|^i|^c/.test(doc.readyState);
+
+    if (!domIsReady) {
+        doc.addEventListener(domContentLoaded, domReadyListener = function () {
+            doc[removeEventListener](domContentLoaded, domReadyListener);
+            domIsReady = true;
+            domReadyListener = domReadyListeners.shift();
+            while (domReadyListener) {
+                domReadyListener();
+                domReadyListener = domReadyListeners.shift();
+            }
+        });
+    }
 
     /**
      * Main entry method.
@@ -123,14 +140,17 @@
     }
     else {
         addClass = function (el, c) {
-            if (el[className].split(' ').indexOf(c) === -1) {
-                el[className] += ' ' + c;
+            var cls = el[className] ? el[className].split(' ') : [];
+            if (cls.indexOf(c) === -1) {
+                cls.push(c);
             }
+            el[className] = cls.join(' ');
         };
         removeClass = function (el, c) {
-            el[className] = el[className].split(' ').filter(function (cl) {
-                return cl !== c;
+            var cls = el[className].split(' ').filter(function (cl) {
+                return cl && cl !== c;
             });
+            el[className] = cls.length ? cls.join(' ') : '';
         };
         hasClass = function (el, c) {
             return el[className].split(' ').indexOf(c) !== -1;
@@ -146,6 +166,19 @@
     var Dom = function (selector) {
 
         if (!selector) {
+            return this;
+        }
+
+        // jQuery's $(function () {}) behaviour
+        if (isFunction(selector)) {
+            this[0] = doc;
+            this.length = 1;
+            if (domIsReady) {
+                selector(dom);
+            }
+            else {
+                domReadyListeners.push(fn);
+            }
             return this;
         }
 
@@ -350,7 +383,6 @@
 
                 var matchesSelector = el.webkitMatchesSelector ||
                     el.mozMatchesSelector ||
-                    el.msMatchesSelector ||
                     el.oMatchesSelector ||
                     el.matchesSelector ||
                     el.matches;
@@ -374,7 +406,7 @@
                     parent.appendChild(el);
                 }
 
-                match = parent[querySelectorAll](selector).indexOf(el) !== -1;
+                match = slice.call(parent[querySelectorAll](selector)).indexOf(el) !== -1;
 
                 if (temp) {
                     testEl.removeChild(el);
@@ -445,7 +477,7 @@
          */
         once: function (event, fn) {
             return this.on(event, function handler() {
-                this.removeEventListener(event, handler, false);
+                this[removeEventListener](event, handler, false);
                 return fn.apply(this, arguments);
             });
         },
@@ -459,35 +491,27 @@
 
                 var event, eventClass;
 
-                if (el.dispatchEvent) {
+                switch (eventName) {
+                    case 'click':
+                    case 'mousedown':
+                    case 'mouseup':
+                        eventClass = 'MouseEvents';
+                        break;
 
-                    switch (eventName) {
-                        case 'click':
-                        case 'mousedown':
-                        case 'mouseup':
-                            eventClass = 'MouseEvents';
-                            break;
-
-                        case 'focus':
-                        case 'change':
-                        case 'blur':
-                        case 'select':
-                            eventClass = 'HTMLEvents';
-                            break;
-                        default:
-                            return;
-                    }
-
-                    event = doc.createEvent(eventClass);
-                    event.initEvent(eventName, true, true);
-                    event.synthetic = true;
-                    el.dispatchEvent(event, true);
+                    case 'focus':
+                    case 'change':
+                    case 'blur':
+                    case 'select':
+                        eventClass = 'HTMLEvents';
+                        break;
+                    default:
+                        return;
                 }
-                else if (el.fireEvent) {
-                    event = doc.createEventObject();
-                    event.synthetic = true;
-                    el.fireEvent('on' + eventName, event);
-                }
+
+                event = doc.createEvent(eventClass);
+                event.initEvent(eventName, true, true);
+                event.synthetic = true;
+                el.dispatchEvent(event, true);
             });
         },
 
@@ -499,7 +523,7 @@
          */
         off: function (event, fn) {
             return this[each](function () {
-                this.removeEventListener(event, fn, false);
+                this[removeEventListener](event, fn, false);
             });
         },
 
@@ -647,7 +671,15 @@
                 return null;
             }
 
-            var obj = this[0].getBoundingClientRect();
+            var result = {left: 0, top: 0, width: 0, height: 0};
+            var obj;
+
+            try {
+                obj = this[0].getBoundingClientRect();
+            }
+            catch (e) {
+                return result;
+            }
 
             return {
                 left: obj.left + win.pageXOffset,
