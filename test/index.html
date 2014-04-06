@@ -8,8 +8,22 @@
     <script src="../node_modules/mocha/mocha.js"></script>
     <script src="../node_modules/expect.js/index.js"></script>
     <script src="../node_modules/sinon/pkg/sinon.js"></script>
+
     <script>
         mocha.setup('bdd');
+    </script>
+
+    <script src="src/dom.js"></script>
+
+    <script>
+        // dom ready tests
+        var domReady1 = sinon.spy();
+        var domReady2 = sinon.spy();
+        var domReady3 = sinon.spy();
+        console.log('Adding first dom ready listener');
+        dom(domReady1);
+        dom(domReady2);
+        dom(domReady3);
     </script>
 
     <style>
@@ -29,12 +43,11 @@
 </head>
 <body>
     <div id="mocha"></div>
-    <script src="src/dom.js"></script>
+
     <script src="spec/dom.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            mocha.run();
-        }, false);
+        dom(mocha.run);
     </script>
+
 </body>
 </html>

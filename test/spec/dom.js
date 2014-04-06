@@ -39,6 +39,18 @@ describe('dom', function () {
             expect(dom('div')).to.have.length(document.getElementsByTagName('div').length);
         });
 
+        it('should handle an id that doesnt exist', function () {
+            expect(dom('#does-not-exist')).to.be.ok();
+        });
+
+        it('should treat the selector "body" as document.body', function () {
+            expect(dom('body')[0]).to.equal(document.body);
+        });
+
+        it('should treat the selector "document" as document', function () {
+            expect(dom('document')[0]).to.equal(document);
+        });
+
     });
 
     describe('dom(document)', function () {
@@ -85,6 +97,26 @@ describe('dom', function () {
             var arr = [el];
             expect(dom(arr)).to.have.length(1);
             expect(dom(arr)[0]).to.equal(el);
+        });
+
+    });
+
+    describe('dom(function)', function () {
+
+        it('should call the function when the document is ready passing it the dom() function', function () {
+            var spy = sinon.spy();
+            dom(spy);
+            expect(spy.callCount).to.equal(1);
+            expect(spy.getCall(0).args[0]).to.equal(dom);
+        });
+
+        it('should call functions when the document is ready', function () {
+            expect(domReady1.callCount).to.equal(1);
+            expect(domReady1.getCall(0).args[0]).to.equal(dom);
+            expect(domReady2.callCount).to.equal(1);
+            expect(domReady2.getCall(0).args[0]).to.equal(dom);
+            expect(domReady3.callCount).to.equal(1);
+            expect(domReady3.getCall(0).args[0]).to.equal(dom);
         });
 
     });
@@ -463,6 +495,10 @@ describe('dom', function () {
 
     describe('#get()', function () {
 
+        it('should return null if the index is larger than the collection', function () {
+            expect(dom(document.createElement('div')).get(10)).to.equal(null);
+        });
+
         it('should return the actual element at the provided index', function () {
             var arr = [
                 document.createElement('span'),
@@ -474,6 +510,18 @@ describe('dom', function () {
             expect(dom(arr).get(2)).to.equal(arr[2]);
             expect(dom(arr).get()).to.have.length(3);
             expect(dom(arr).get()).to.be.an('array');
+        });
+
+        it('should accept a negative index and return elements from the end of the collection', function () {
+             var arr = [
+                document.createElement('span'),
+                document.createElement('span'),
+                document.createElement('span')
+            ];
+            expect(dom(arr).get(-1)).to.equal(arr[2]);
+            expect(dom(arr).get(-2)).to.equal(arr[1]);
+            expect(dom(arr).get(-3)).to.equal(arr[0]);
+            expect(dom(arr).get(-4)).to.equal(null);
         });
 
     });
@@ -857,7 +905,7 @@ describe('dom', function () {
 
     });
 
-    describe('#previous()', function () {
+    describe('#prev()', function () {
 
         it('should return a new collection containing the previous elements of each element in the original collection', function () {
 
@@ -867,13 +915,13 @@ describe('dom', function () {
                 '<span class="foo"></span><span class="test-previous"></span>'
             );
 
-            var previous = dom('.test-previous').previous();
+            var previous = dom('.test-previous').prev();
             expect(previous).to.have.length(3);
         });
 
     });
 
-    describe('#previous(selector)', function () {
+    describe('#prev(selector)', function () {
 
         it('should filter the results by the passed selector', function () {
 
@@ -883,7 +931,7 @@ describe('dom', function () {
                 '<span class="foo"></span><span class="test-previous"></span>'
             );
 
-            var previous = dom('.test-previous').previous('.bar');
+            var previous = dom('.test-previous').prev('.bar');
             expect(previous).to.have.length(1);
         });
 
@@ -1229,6 +1277,156 @@ describe('dom', function () {
             expect(el.children[1]).to.have.property('className', 'added-before');
             expect(el.children[2]).to.have.property('className', 'test-before');
             expect(el.children[4]).to.have.property('className', 'added-before');
+        });
+
+    });
+
+    describe('#insertBefore()', function () {
+
+        beforeEach(function () {
+            addTestHTML(
+                '<div id="test-before">',
+                    '<span class="test-before-placeholder"></span>',
+                    '<span class="test-before"></span>',
+                    '<span class="test-before-placeholder"></span>',
+                    '<span class="test-before"></span>',
+                    '<span class="test-before-placeholder"></span>',
+                    '<span class="test-before"></span>',
+                '</div>'
+            );
+        });
+
+        it('should return this if argument is invalid', function () {
+            var d = dom();
+            expect(d.insertBefore(null)).to.equal(d);
+            expect(d.insertBefore({})).to.equal(d);
+            expect(d.insertBefore()).to.equal(d);
+        });
+
+        it('should do nothing if an element has no parent', function () {
+            expect(dom('<span></span>').insertBefore('<span></span>')).to.be.ok();
+        });
+
+        it('should not clone the passed element if the collection has only one element', function () {
+            var root = document.createElement('div');
+            var child = document.createElement('span');
+            root.appendChild(child);
+            var firstChild = document.createElement('span');
+            dom(firstChild).insertBefore(child);
+            expect(root.children[0]).to.equal(firstChild);
+        });
+
+        it('should accept an html string', function () {
+
+            dom('<span class="added-before"></span>').insertBefore('.test-before');
+            var el = document.getElementById('test-before');
+
+            expect(el.children).to.have.length(9);
+            expect(el.children[1]).to.have.property('className', 'added-before');
+            expect(el.children[2]).to.have.property('className', 'test-before');
+            expect(el.children[4]).to.have.property('className', 'added-before');
+        });
+
+        it('should accept a DOM element', function () {
+
+            var toBeAddedBefore = document.createElement('span');
+            toBeAddedBefore.className = 'added-before';
+
+            dom(toBeAddedBefore).insertBefore('.test-before');
+            var el = document.getElementById('test-before');
+
+            expect(el.children).to.have.length(9);
+            expect(el.children[1]).to.have.property('className', 'added-before');
+            expect(el.children[2]).to.have.property('className', 'test-before');
+            expect(el.children[4]).to.have.property('className', 'added-before');
+        });
+
+        it('should accept a dom() collection', function () {
+
+            var toBeAddedBefore = dom('<span></span>').addClass('added-before');
+
+            dom(toBeAddedBefore).insertBefore('.test-before');
+            var el = document.getElementById('test-before');
+
+            expect(el.children).to.have.length(9);
+            expect(el.children[1]).to.have.property('className', 'added-before');
+            expect(el.children[2]).to.have.property('className', 'test-before');
+            expect(el.children[4]).to.have.property('className', 'added-before');
+        });
+
+    });
+
+    describe('#insertAfter()', function () {
+
+        beforeEach(function () {
+            addTestHTML(
+                '<div id="test-after">',
+                    '<span class="test-after"></span>',
+                    '<span class="test-after-placeholder"></span>',
+                    '<span class="test-after"></span>',
+                    '<span class="test-after-placeholder"></span>',
+                    '<span class="test-after"></span>',
+                    '<span class="test-after-placeholder"></span>',
+                '</div>'
+            );
+        });
+
+        it('should return this if argument is invalid', function () {
+            var d = dom();
+            expect(d.insertAfter(null)).to.equal(d);
+            expect(d.insertAfter({})).to.equal(d);
+            expect(d.insertAfter()).to.equal(d);
+        });
+
+        it('should do nothing if an element has no parent', function () {
+            expect(dom('<span></span>').insertAfter('<span></span>')).to.be.ok();
+        });
+
+        it('should not clone the passed element if the collection has only one element', function () {
+            var root = document.createElement('div');
+            var child = document.createElement('span');
+            root.appendChild(child);
+            var secondChild = document.createElement('span');
+            dom(secondChild).insertAfter(child);
+            expect(root.children[1]).to.equal(secondChild);
+        });
+
+        it('should accept an html string', function () {
+
+            dom('<span class="added-after"></span>').insertAfter('.test-after');
+            var el = document.getElementById('test-after');
+
+            expect(el.children).to.have.length(9);
+            expect(el.children[1]).to.have.property('className', 'added-after');
+            expect(el.children[2]).to.have.property('className', 'test-after-placeholder');
+            expect(el.children[4]).to.have.property('className', 'added-after');
+        });
+
+        it('should accept a DOM element', function () {
+
+            var toBeAddedAfter = document.createElement('span');
+            toBeAddedAfter.className = 'added-after';
+
+            dom(toBeAddedAfter).insertAfter('.test-after');
+            var el = document.getElementById('test-after');
+
+            expect(el.children).to.have.length(9);
+            expect(el.children[1]).to.have.property('className', 'added-after');
+            expect(el.children[2]).to.have.property('className', 'test-after-placeholder');
+            expect(el.children[4]).to.have.property('className', 'added-after');
+        });
+
+        it('should accept a dom() collection', function () {
+
+            var toBeAddedAfter = dom('<span></span>').addClass('added-after');
+
+            dom(toBeAddedAfter).insertAfter('.test-after');
+            var el = document.getElementById('test-after');
+
+            expect(el.children).to.have.length(9);
+            expect(el.children[1]).to.have.property('className', 'added-after');
+            expect(el.children[2]).to.have.property('className', 'test-after-placeholder');
+            expect(el.children[4]).to.have.property('className', 'added-after');
         });
 
     });

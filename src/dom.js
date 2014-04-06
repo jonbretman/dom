@@ -28,14 +28,15 @@
 
     if (!domIsReady) {
         doc.addEventListener(domContentLoaded, domReadyListener = function () {
-            doc[removeEventListener](domContentLoaded, domReadyListener);
+            doc[removeEventListener](domContentLoaded, domReadyListener, false);
             domIsReady = true;
             domReadyListener = domReadyListeners.shift();
+
             while (domReadyListener) {
-                domReadyListener();
+                domReadyListener(dom);
                 domReadyListener = domReadyListeners.shift();
             }
-        });
+        }, false);
     }
 
     /**
@@ -177,7 +178,7 @@
                 selector(dom);
             }
             else {
-                domReadyListeners.push(fn);
+                domReadyListeners.push(selector);
             }
             return this;
         }
@@ -454,7 +455,13 @@
          * @returns {HTMLElement|Null}
          */
         get: function (n) {
-            return arguments[length] === 0 ? this.toArray() : this[length] - 1 >= n ? this[n] : null;
+            if (!arguments[length]) {
+                return this.toArray();
+            }
+            if (n < 0) {
+                return this[length] + n >= 0 ? this[this[length] + n] : null;
+            }
+            return this[length] - 1 >= n ? this[n] : null;
         },
 
         /**
@@ -730,14 +737,14 @@
 
     });
 
-    // previous(), next(), and parent() methods
-    ['previous', 'next', 'parent'][forEach](function (method, i) {
+    // prev(), next(), and parent() methods
+    ['prev', 'next', 'parent'][forEach](function (method, i) {
 
         Dom[prototype][method] = function (selector) {
             var results = [];
 
             this[each](function () {
-                var el = this[method + (i < 2 ? 'ElementSibling' : 'Element')];
+                var el = this[method + (!i ? 'ious' : '') + (i < 2 ? 'ElementSibling' : 'Element')];
                 if (isElement(el) && (!isString(selector) || dom(el).is(selector))) {
                     results.push(el);
                 }
@@ -748,34 +755,35 @@
 
     });
 
-    // append(), prepend(), after(), and before() methods
-    ['append', 'prepend', 'after', 'before'][forEach](function (method, i) {
+    // append(), prepend(), after(), before(), insertBefore() and insertAfter() methods
+    ['append', 'prepend', 'after', 'before', 'insertBefore', 'insertAfter'][forEach](function (method, i) {
 
         var domMethod = i === 0 ? method + 'Child' : 'insertBefore';
 
         Dom[prototype][method] = function (html) {
 
-            html = isElement(html) ? [html] : isString(html) ? fromHtml(html) : html;
+            html = dom(html).filter(isElement);
 
-            if (!arrayLike(html)) {
+            if (!html[length]) {
                 return this;
             }
 
-            // turn into a proper array
-            html = slice.call(html);
+            var targets = i < 4 ? this : html;
+            var clone = targets[length] > 1;
 
-            var clone = this[length] > 1;
+            html = i < 4 ? html : this;
 
-            return this[each](function (target) {
+            return targets[each](function (target) {
 
-                if (i > 1 && !target[parentNode]) {
+                var root = i > 1 ? target[parentNode] : target;
+
+                if (!root) {
                     return;
                 }
 
-                var root = i > 1 ? target[parentNode] : target;
-                var ref = [null, target.firstChild, target.nextSibling, target][i];
+                var ref = [null, target.firstChild, target.nextSibling, target, target, target.nextSibling][i];
 
-                html[forEach](function (el) {
+                html[each](function (el) {
                     root[domMethod](clone ? el.cloneNode(true) : el, ref);
                 });
             });
@@ -786,7 +794,7 @@
     // expose prototype jQuery style
     dom[prototype] = dom.fn = Dom[prototype];
 
-    // helper for generated a delegate method
+    // helper for generating a delegate method
     dom.delegate = function (selector, fn) {
         return function (e) {
             if (dom(e.target).closest(selector)[length]) {
